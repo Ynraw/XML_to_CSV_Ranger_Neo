@@ -149,37 +149,41 @@ files = get_folder(path)
 converted_successfully = 0
 failed = 0
 
-for num,file in enumerate(files,1):
-    print(f'converting {file} file now...')
-    xml = get_file(file, path)
-    try:
-        tree = et.parse(xml, parser)
-    except:
-        failed += 1
-        print('Error detected...')
-        print(f'\tPlease check <\COVERAGE> closing tag of {file}')
-        continue
-    
-    root = tree.getroot()
-    params_ = params(root)
-    cpoints = root.findall('CPOINT')
-    cpoints_dictionary,succeed = dictionary(cpoints)
-    if succeed:
-        converted_successfully += 1
-        df = dataframe(cpoints_dictionary)
-        print('\tsuccess...')
-    else:
-        failed += 1
-        print(f'Error detected in {file} file')
-        print('\tfailed...')
-        continue
-    df_complete = add_params(params_, df)
-    df_list.append(df_complete)
+if bool(files):
+    for file in files:
+        print(f'converting {file} file now...')
+        xml = get_file(file, path)
+        try:
+            tree = et.parse(xml, parser)
+        except:
+            failed += 1
+            print('Error detected...')
+            print(f'\tPlease check <\COVERAGE> closing tag of {file}')
+            continue
+        
+        root = tree.getroot()
+        params_ = params(root)
+        cpoints = root.findall('CPOINT')
+        cpoints_dictionary,succeed = dictionary(cpoints)
+        if succeed:
+            converted_successfully += 1
+            df = dataframe(cpoints_dictionary)
+            print('\tsuccess...')
+        else:
+            failed += 1
+            print(f'Error detected in {file} file')
+            print('\tfailed...')
+            continue
+        df_complete = add_params(params_, df)
+        df_list.append(df_complete)
+else:
+    print('\n-------No XML files, please check path directory or check folder--------')
+    exit()
     
 output = concat(df_list)
 good, no_signal = separate_good(output)
 create_folder(path)
-    
+
 # please change the the path new folder name and filename
 good.to_csv(path + '/CSV/good.csv', index = False)
 no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
