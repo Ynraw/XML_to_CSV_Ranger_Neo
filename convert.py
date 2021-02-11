@@ -20,7 +20,7 @@ def get_folder(path_folder):
     folder/directory and returned as list"""
     
     try:
-        folder = os.listdir(path_folder)
+        folder = [file for file in os.listdir(path_folder) if file.endswith('.XML')]
     except:
         print('\nInvalid folder path. Please check...')
         exit()
@@ -127,10 +127,16 @@ def add_params(parameters, df):
     return df
 
 
-df_list = []
+def create_folder(path):
+    
+    """create CSV folder where csv files will be stored/saved"""
+    
+    if not os.path.exists(path + '/CSV'):
+        os.mkdir(path + '/CSV') 
+    
 
+df_list = []
 parser = et.XMLParser(ns_clean=True)
-# please change the path folder where the xml files are stored
 try:                 
     path = argv[1]
 except:
@@ -138,10 +144,10 @@ except:
           type the command 'python convert <folder path>'""")
     exit()
 
-#path = input('Please input folder path: ')
 files = get_folder(path)
 
-number_of_file_converted_successfully = 0
+converted_successfully = 0
+failed = 0
 
 for num,file in enumerate(files,1):
     print(f'converting {file} file now...')
@@ -149,35 +155,38 @@ for num,file in enumerate(files,1):
     try:
         tree = et.parse(xml, parser)
     except:
+        failed += 1
         print('Error detected...')
         print(f'\tPlease check <\COVERAGE> closing tag of {file}')
         continue
+    
     root = tree.getroot()
     params_ = params(root)
     cpoints = root.findall('CPOINT')
     cpoints_dictionary,succeed = dictionary(cpoints)
     if succeed:
+        converted_successfully += 1
         df = dataframe(cpoints_dictionary)
-        number_of_file_converted_successfully += 1
         print('\tsuccess...')
     else:
-        print(f'\tError detected in {file} file')
-        print(f'\tConversion failed for {file}')
+        failed += 1
+        print(f'Error detected in {file} file')
+        print('\tfailed...')
         continue
     df_complete = add_params(params_, df)
     df_list.append(df_complete)
     
 output = concat(df_list)
 good, no_signal = separate_good(output)
-
-# please input new folder name to store the converted xml files
-os.mkdir(path + '/CSV')    
-
+create_folder(path)
+    
 # please change the the path new folder name and filename
 good.to_csv(path + '/CSV/good.csv', index = False)
 no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
 
-print(f'\n{number_of_file_converted_successfully} conversion is successful...\nPlease check CSV folder.')
+print(f'\n{converted_successfully} files converted successfully')
+print(f'{failed} files failed')
+print('Please check CSV folder.')
 
 
 
