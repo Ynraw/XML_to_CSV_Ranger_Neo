@@ -11,7 +11,7 @@ Created on Wed Feb 10 08:18:48 2021
 import os
 import pandas as pd
 from lxml import etree as et
-from sys import argv
+import sys 
 
 
 def get_folder(path_folder):
@@ -22,8 +22,8 @@ def get_folder(path_folder):
     try:
         folder = [file for file in os.listdir(path_folder) if file.endswith('.XML')]
     except:
-        print('\nInvalid folder path. Please check...')
-        exit()
+        print('\nMissing directory. Might be a case of incorrect path. Please check...')
+        sys.exit()
     return folder
 
     
@@ -85,7 +85,6 @@ def dictionary(cpoint_list):
     sift through it to extract the following (ID,DATE,ALTITUDE,LATITUDE,
     LONGITUDE,STATUS,POWER,CN,MER,CBER,VBER) save it to a dictionary called dic and returns the dictionary"""
     
-    succeed = True
     dic = {'ID':[],'DATE':[],
             'ALTITUDE':[],'LATITUDE':[],
             'LONGITUDE':[],'STATUS':[],
@@ -95,20 +94,50 @@ def dictionary(cpoint_list):
     for point in cpoint_list:
         try:
             dic['ID'].append(point.attrib['id'])
+        except:
+            dic['ID'].append(0)
+        try:
             dic['DATE'].append(point.attrib['date'])
+        except:
+            dic['DATE'].append(0)
+        try:
             dic['ALTITUDE'].append(point.find('GPS').attrib['altitude'])
+        except:
+            dic['ALTITUDE'].append(0)
+        try:
             dic['LATITUDE'].append(point.find('GPS').attrib['latitude'])
+        except:
+            dic['LATITUDE'].append(0)
+        try:
             dic['LONGITUDE'].append(point.find('GPS').attrib['longitude'])
-            dic['STATUS'].append(point.find('STATUS').attrib['value'])      
+        except:
+            dic['LONGITUDE'].append(0)
+        try:
+            dic['STATUS'].append(point.find('STATUS').attrib['value'])
+        except:
+            dic['STATUS'].append(0)
+        try:
             dic['POWER'].append(point.find('MEASURES').find('POWER').attrib['value'])
+        except:
+            dic['POWER'].append(0)
+        try:
             dic['CN'].append(point.find('MEASURES').find('CN').attrib['value'])
-            dic['MER'].append(point.find('MEASURES').find('MER').attrib['value'])    
+        except:
+            dic['CN'].append(0)
+        try:
+            dic['MER'].append(point.find('MEASURES').find('MER').attrib['value'])
+        except:
+            dic['MER'].append(0)
+        try:
             dic['CBER'].append(point.find('MEASURES').find('CBER').attrib['value'])
+        except:
+            dic['CBER'].append(0)
+        try:
             dic['VBER'].append(point.find('MEASURES').find('VBER').attrib['value'])
         except:
-            succeed = False
+            dic['VBER'].append(0)
             
-    return dic, succeed
+    return dic
 
 
 def add_params(parameters, df):
@@ -138,7 +167,7 @@ def create_folder(path):
 df_list = []
 parser = et.XMLParser(ns_clean=True)
 try:                 
-    path = argv[1]
+    path = sys.argv[1]
 except:
     print("""\nPlease don\'t forget to type the target folder path
           type the command 'python convert <folder path>'""")
@@ -164,21 +193,15 @@ if bool(files):
         root = tree.getroot()
         params_ = params(root)
         cpoints = root.findall('CPOINT')
-        cpoints_dictionary,succeed = dictionary(cpoints)
-        if succeed:
-            converted_successfully += 1
-            df = dataframe(cpoints_dictionary)
-            print('\tsuccess...')
-        else:
-            failed += 1
-            print(f'Error detected in {file} file')
-            print('\tfailed...')
-            continue
+        cpoints_dictionary= dictionary(cpoints)
+        df = dataframe(cpoints_dictionary)
+        print('\tsuccess...')
         df_complete = add_params(params_, df)
         df_list.append(df_complete)
+        converted_successfully += 1
 else:
     print('\n-------No XML files, please check path directory or check folder--------')
-    exit()
+    sys.exit()
     
 output = concat(df_list)
 good, no_signal = separate_good(output)
@@ -188,7 +211,7 @@ create_folder(path)
 good.to_csv(path + '/CSV/good.csv', index = False)
 no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
 
-print(f'\n{converted_successfully} files converted successfully')
+print(f'\n{converted_successfully} files converted and merged successfully')
 print(f'{failed} files failed')
 print('Please check CSV folder.')
 
