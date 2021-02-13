@@ -162,17 +162,22 @@ def create_folder(path):
     
     if not os.path.exists(path + '/CSV'):
         os.mkdir(path + '/CSV') 
+
+def get_path():
+    try:                 
+        path = sys.argv[1]
+    except:
+        print("""\nPlease don\'t forget to type the target folder path
+            type the command 'python convert <folder path>'""")
+        exit()
     
+    return path
+
 
 df_list = []
 parser = et.XMLParser(ns_clean=True)
-try:                 
-    path = sys.argv[1]
-except:
-    print("""\nPlease don\'t forget to type the target folder path
-          type the command 'python convert <folder path>'""")
-    exit()
 
+path = get_path()
 files = get_folder(path)
 
 converted_successfully = 0
