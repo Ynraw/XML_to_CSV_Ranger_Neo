@@ -22,8 +22,13 @@ def get_folder(path_folder):
     try:
         folder = [file for file in os.listdir(path_folder) if file.endswith('.XML')]
     except:
-        print('\nMissing directory. Might be a case of incorrect path. Please check...')
+        print('\n-------Missing directory. Might be a case of incorrect path/folder name. Please check.-------')
         sys.exit()
+
+    if len(folder) < 1:
+        print('\n-------No XML files, please check path directory or check folder-------')
+        sys.exit()
+        
     return folder
 
     
@@ -183,31 +188,29 @@ files = get_folder(path)
 converted_successfully = 0
 failed = 0
 
-if bool(files):
-    for file in files:
-        print(f'converting {file} file now...')
-        xml = get_file(file, path)
-        try:
-            tree = et.parse(xml, parser)
-        except:
-            failed += 1
-            print('Error detected...')
-            print(f'\tPlease check <\COVERAGE> closing tag of {file}')
-            continue
-        
-        root = tree.getroot()
-        params_ = params(root)
-        cpoints = root.findall('CPOINT')
-        cpoints_dictionary= dictionary(cpoints)
-        df = dataframe(cpoints_dictionary)
-        print('\tsuccess...')
-        df_complete = add_params(params_, df)
-        df_list.append(df_complete)
-        converted_successfully += 1
-else:
-    print('\n-------No XML files, please check path directory or check folder--------')
-    sys.exit()
+
+for file in files:
+    print(f'converting {file} file now...')
+    xml = get_file(file, path)
+    try:
+        tree = et.parse(xml, parser)
+    except:
+        failed += 1
+        print('Error detected...')
+        print(f'\tPlease check <\COVERAGE> closing tag of {file}')
+        continue
     
+    root = tree.getroot()
+    params_ = params(root)
+    cpoints = root.findall('CPOINT')
+    cpoints_dictionary= dictionary(cpoints)
+    df = dataframe(cpoints_dictionary)
+    print('\tsuccess...')
+    df_complete = add_params(params_, df)
+    df_list.append(df_complete)
+    converted_successfully += 1
+
+       
 output = concat(df_list)
 good, no_signal = separate_good(output)
 create_folder(path)
