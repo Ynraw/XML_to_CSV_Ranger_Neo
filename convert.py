@@ -180,15 +180,14 @@ def get_path():
     return path
 
 def main():
-    df_list = []
-    parser = et.XMLParser(ns_clean=True)
-
-    path = get_path()
-    files = get_folder(path)
 
     converted_successfully = 0
     failed = 0
+    df_list = []
 
+    parser = et.XMLParser(ns_clean=True)
+    path = get_path()
+    files = get_folder(path)
 
     for file in files:
         print(f'converting {file} file now...')
@@ -210,13 +209,11 @@ def main():
         df_complete = add_params(params_, df)
         df_list.append(df_complete)
         converted_successfully += 1
-
-        
+    
     output = concat(df_list)
     good, no_signal = separate_good(output)
     create_folder(path)
 
-    # please change the the path new folder name and filename
     good.to_csv(path + '/CSV/good.csv', index = False)
     no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
 
