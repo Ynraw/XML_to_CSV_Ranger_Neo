@@ -38,6 +38,7 @@ def params(coverage):
     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING)
     of the given drive test file from PROMAX NEO ranger
     and return all the parameters as tuple"""
+
     try:
         CHANNEL = root.find('INFORMATION').find('CHANNEL').attrib['name']
         FREQUENCY = root.find('INFORMATION').find('CHANNEL').attrib['frequency']
@@ -178,50 +179,54 @@ def get_path():
     
     return path
 
+def main():
+    df_list = []
+    parser = et.XMLParser(ns_clean=True)
 
-df_list = []
-parser = et.XMLParser(ns_clean=True)
+    path = get_path()
+    files = get_folder(path)
 
-path = get_path()
-files = get_folder(path)
-
-converted_successfully = 0
-failed = 0
+    converted_successfully = 0
+    failed = 0
 
 
-for file in files:
-    print(f'converting {file} file now...')
-    xml = get_file(file, path)
-    try:
-        tree = et.parse(xml, parser)
-    except:
-        failed += 1
-        print('Error detected...')
-        print(f'\tPlease check <\COVERAGE> closing tag of {file}')
-        continue
-    
-    root = tree.getroot()
-    params_ = params(root)
-    cpoints = root.findall('CPOINT')
-    cpoints_dictionary= dictionary(cpoints)
-    df = dataframe(cpoints_dictionary)
-    print('\tsuccess...')
-    df_complete = add_params(params_, df)
-    df_list.append(df_complete)
-    converted_successfully += 1
+    for file in files:
+        print(f'converting {file} file now...')
+        xml = get_file(file, path)
+        try:
+            tree = et.parse(xml, parser)
+        except:
+            failed += 1
+            print('Error detected...')
+            print(f'\tPlease check <\COVERAGE> closing tag of {file}')
+            continue
+        
+        root = tree.getroot()
+        params_ = params(root)
+        cpoints = root.findall('CPOINT')
+        cpoints_dictionary= dictionary(cpoints)
+        df = dataframe(cpoints_dictionary)
+        print('\tsuccess...')
+        df_complete = add_params(params_, df)
+        df_list.append(df_complete)
+        converted_successfully += 1
 
-       
-output = concat(df_list)
-good, no_signal = separate_good(output)
-create_folder(path)
+        
+    output = concat(df_list)
+    good, no_signal = separate_good(output)
+    create_folder(path)
 
-# please change the the path new folder name and filename
-good.to_csv(path + '/CSV/good.csv', index = False)
-no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
+    # please change the the path new folder name and filename
+    good.to_csv(path + '/CSV/good.csv', index = False)
+    no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
 
-print(f'\n{converted_successfully} files converted and merged successfully')
-print(f'{failed} files failed')
-print('Please check CSV folder.')
+    print(f'\n{converted_successfully} files converted and merged successfully')
+    print(f'{failed} files failed')
+    print('Please check CSV folder.')
+
+
+if __name__ == '__main__':
+    main()
 
 
 
