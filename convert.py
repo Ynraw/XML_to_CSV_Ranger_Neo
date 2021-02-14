@@ -32,20 +32,21 @@ def get_folder(path_folder):
     return folder
 
     
-def params(coverage):
+def params(channel, measurements):
     
     """extract the following parameters (CHANNEL, FREQUENCY,
     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING)
     of the given drive test file from PROMAX NEO ranger
     and return all the parameters as tuple"""
+
     try:
-        CHANNEL = root.find('INFORMATION').find('CHANNEL').attrib['name']
-        FREQUENCY = root.find('INFORMATION').find('CHANNEL').attrib['frequency']
-        FFT_MODE = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T').find('PARAMETERS').find('FFT_MODE').attrib['value']
-        GUARD_INTERVAL = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T').find('PARAMETERS').find('GUARD_INTERVAL').attrib['value']
-        CODERATE = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
-        CONSTELLATION = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
-        TIME_INTERLEAVING = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
+        CHANNEL = channel.attrib['name']
+        FREQUENCY = channel.attrib['frequency']
+        FFT_MODE = measurements.find('ISDB-T').find('PARAMETERS').find('FFT_MODE').attrib['value']
+        GUARD_INTERVAL = measurements.find('ISDB-T').find('PARAMETERS').find('GUARD_INTERVAL').attrib['value']
+        CODERATE = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
+        CONSTELLATION = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
+        TIME_INTERLEAVING = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
     except:
         CHANNEL, FREQUENCY, FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING = 0,0,0,0,0,0,0
     
@@ -178,50 +179,53 @@ def get_path():
     
     return path
 
+def main():
 
-df_list = []
-parser = et.XMLParser(ns_clean=True)
+    converted_successfully = 0
+    failed = 0
+    df_list = []
 
-path = get_path()
-files = get_folder(path)
+    parser = et.XMLParser(ns_clean=True)
+    path = get_path()
+    files = get_folder(path)
 
-converted_successfully = 0
-failed = 0
-
-
-for file in files:
-    print(f'converting {file} file now...')
-    xml = get_file(file, path)
-    try:
-        tree = et.parse(xml, parser)
-    except:
-        failed += 1
-        print('Error detected...')
-        print(f'\tPlease check <\COVERAGE> closing tag of {file}')
-        continue
+    for file in files:
+        print(f'converting {file} file now...')
+        xml = get_file(file, path)
+        try:
+            tree = et.parse(xml, parser)
+        except:
+            failed += 1
+            print('Error detected...')
+            print(f'\tPlease check <\COVERAGE> closing tag of {file}')
+            continue
+        
+        root = tree.getroot()
+        channel = root.find('INFORMATION').find('CHANNEL')
+        measurements = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS')
+        params_ = params(channel, measurements)
+        cpoints = root.findall('CPOINT')
+        cpoints_dictionary= dictionary(cpoints)
+        df = dataframe(cpoints_dictionary)
+        print('\tsuccess...')
+        df_measures_with_params = add_params(params_, df)
+        df_list.append(df_measures_with_params)
+        converted_successfully += 1
     
-    root = tree.getroot()
-    params_ = params(root)
-    cpoints = root.findall('CPOINT')
-    cpoints_dictionary= dictionary(cpoints)
-    df = dataframe(cpoints_dictionary)
-    print('\tsuccess...')
-    df_complete = add_params(params_, df)
-    df_list.append(df_complete)
-    converted_successfully += 1
+    output = concat(df_list)
+    good, no_signal = separate_good(output)
+    create_folder(path)
 
-       
-output = concat(df_list)
-good, no_signal = separate_good(output)
-create_folder(path)
+    good.to_csv(path + '/CSV/good.csv', index = False)
+    no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
 
-# please change the the path new folder name and filename
-good.to_csv(path + '/CSV/good.csv', index = False)
-no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
+    print(f'\n{converted_successfully} file/s converted and merged successfully')
+    print(f'{failed} file/s failed')
+    print('Please check CSV folder.')
 
-print(f'\n{converted_successfully} files converted and merged successfully')
-print(f'{failed} files failed')
-print('Please check CSV folder.')
+
+if __name__ == '__main__':
+    main()
 
 
 
