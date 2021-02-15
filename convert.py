@@ -8,6 +8,7 @@ Created on Wed Feb 10 08:18:48 2021
 
 """
 
+
 import os
 import pandas as pd
 from lxml import etree as et
@@ -169,6 +170,7 @@ def create_folder(path):
     if not os.path.exists(path + '/CSV'):
         os.mkdir(path + '/CSV') 
 
+
 def get_path():
     try:                 
         path = sys.argv[1]
@@ -178,6 +180,7 @@ def get_path():
         exit()
     
     return path
+
 
 def main():
 
