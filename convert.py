@@ -176,8 +176,8 @@ def get_path():
         path = sys.argv[1]
     except:
         print("""\nPlease don\'t forget to type the target folder path
-            type the command 'python convert <folder path>'""")
-        exit()
+            type the command 'convert <folder path>'""")
+        sys.exit()
     
     return path
 
