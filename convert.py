@@ -33,7 +33,7 @@ def get_folder(path_folder):
     return folder
 
     
-def params(channel, measurements):
+def params(channel_, isdbt):
     
     """extract the following parameters (CHANNEL, FREQUENCY,
     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING)
@@ -41,17 +41,35 @@ def params(channel, measurements):
     and return all the parameters as tuple"""
 
     try:
-        CHANNEL = channel.attrib['name']
-        FREQUENCY = channel.attrib['frequency']
-        FFT_MODE = measurements.find('ISDB-T').find('PARAMETERS').find('FFT_MODE').attrib['value']
-        GUARD_INTERVAL = measurements.find('ISDB-T').find('PARAMETERS').find('GUARD_INTERVAL').attrib['value']
-        CODERATE = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
-        CONSTELLATION = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
-        TIME_INTERLEAVING = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
+        channel = channel.attrib['name']
     except:
-        CHANNEL, FREQUENCY, FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING = 0,0,0,0,0,0,0
+        channel = 0
+    try:
+        frequency = channel.attrib['frequency']
+    except:
+        frequency = 0
+    try:
+        fft_mode = isdbt.find('PARAMETERS').find('FFT_MODE').attrib['value']
+    except:
+        fft_mode = 0
+    try:
+        guard_interval = isdbt.find('PARAMETERS').find('GUARD_INTERVAL').attrib['value']
+    except:
+        guard_interval = 0
+    try:
+        coderate = isdbt.findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
+    except:
+        coderate = 0
+    try:
+        constellation= isdbt.findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
+    except:
+        constellation = 0
+    try:
+        time_interleaving = isdbt.findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
+    except:
+        time_interleaving = 0
     
-    return CHANNEL, FREQUENCY, FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING
+    return channel, frequency, fft_mode, guard_interval, coderate, constellation, time_interleaving
 
 
 def separate_good(df):
@@ -205,8 +223,8 @@ def main():
         
         root = tree.getroot()
         channel = root.find('INFORMATION').find('CHANNEL')
-        measurements = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS')
-        params_ = params(channel, measurements)
+        isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
+        params_ = params(channel, isdbt)
         cpoints = root.findall('CPOINT')
         cpoints_dictionary= dictionary(cpoints)
         df = dataframe(cpoints_dictionary)
