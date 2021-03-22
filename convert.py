@@ -11,6 +11,8 @@ Created on Wed Feb 10 08:18:48 2021
 
 import os
 import pandas as pd
+import numpy as np
+#import matplotlib.pyplot as plt
 from lxml import etree as et
 import sys 
 
@@ -41,11 +43,11 @@ def params(channel_, isdbt):
     and return all the parameters as tuple"""
 
     try:
-        channel = channel.attrib['name']
+        channel = channel_.attrib['name']
     except:
         channel = 0
     try:
-        frequency = channel.attrib['frequency']
+        frequency = channel_.attrib['frequency']
     except:
         frequency = 0
     try:
