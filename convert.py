@@ -8,6 +8,7 @@ Created on Wed Feb 10 08:18:48 2021
 
 """
 
+
 import os
 import pandas as pd
 from lxml import etree as et
@@ -31,28 +32,7 @@ def get_folder(path_folder):
         
     return folder
 
-    
-def params(channel, measurements):
-    
-    """extract the following parameters (CHANNEL, FREQUENCY,
-    FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING)
-    of the given drive test file from PROMAX NEO ranger
-    and return all the parameters as tuple"""
-
-    try:
-        CHANNEL = channel.attrib['name']
-        FREQUENCY = channel.attrib['frequency']
-        FFT_MODE = measurements.find('ISDB-T').find('PARAMETERS').find('FFT_MODE').attrib['value']
-        GUARD_INTERVAL = measurements.find('ISDB-T').find('PARAMETERS').find('GUARD_INTERVAL').attrib['value']
-        CODERATE = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
-        CONSTELLATION = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
-        TIME_INTERLEAVING = measurements.find('ISDB-T').findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
-    except:
-        CHANNEL, FREQUENCY, FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING = 0,0,0,0,0,0,0
-    
-    return CHANNEL, FREQUENCY, FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING
-
-
+ 
 def separate_good(df):
     
     """seprate out drive test points that have Transport Stream locked signals 
@@ -91,21 +71,26 @@ def dictionary(cpoint_list):
     sift through it to extract the following (ID,DATE,ALTITUDE,LATITUDE,
     LONGITUDE,STATUS,POWER,CN,MER,CBER,VBER) save it to a dictionary called dic and returns the dictionary"""
     
-    dic = {'ID':[],'DATE':[],
-            'ALTITUDE':[],'LATITUDE':[],
+    dic = {'TEST POINT':[],'DATE':[],
+            'TIME':[],'ALTITUDE':[],'LATITUDE':[],
             'LONGITUDE':[],'STATUS':[],
-            'POWER':[],'CN':[],'MER':[],
-            'CBER':[],'VBER':[]}
+            'CH26 (MAIN) - POWER(dBuV)':[],'CH26 (MAIN) - CN(dB)':[],
+            'CH26 (MAIN) - OFFSET(kHz)':[],'CH26 (MAIN) - MER(dB)':[],
+            'CH26 (MAIN) - CBER':[],'CH26 (MAIN) - VBER':[],'CH26 (MAIN) - LM(dB)':[]}
     
     for point in cpoint_list:
         try:
-            dic['ID'].append(point.attrib['id'])
+            dic['TEST POINT'].append(point.attrib['id'])
         except:
-            dic['ID'].append(0)
+            dic['TEST POINT'].append(0)
         try:
             dic['DATE'].append(point.attrib['date'])
         except:
             dic['DATE'].append(0)
+        try:
+            dic['TIME'].append(point.attrib['time'])
+        except:
+            dic['TIME'].append(0)
         try:
             dic['ALTITUDE'].append(point.find('GPS').attrib['altitude'])
         except:
@@ -123,43 +108,36 @@ def dictionary(cpoint_list):
         except:
             dic['STATUS'].append(0)
         try:
-            dic['POWER'].append(point.find('MEASURES').find('POWER').attrib['value'])
+            dic['CH26 (MAIN) - POWER(dBuV)'].append(point.find('MEASURES').find('POWER').attrib['value'])
         except:
-            dic['POWER'].append(0)
+            dic['CH26 (MAIN) - POWER(dBuV)'].append(0)
         try:
-            dic['CN'].append(point.find('MEASURES').find('CN').attrib['value'])
+            dic['CH26 (MAIN) - CN(dB)'].append(point.find('MEASURES').find('CN').attrib['value'])
         except:
-            dic['CN'].append(0)
+            dic['CH26 (MAIN) - CN(dB)'].append(0)
         try:
-            dic['MER'].append(point.find('MEASURES').find('MER').attrib['value'])
+            dic['CH26 (MAIN) - OFFSET(kHz)'].append(point.find('MEASURES').find('OFFSET').attrib['value'])
         except:
-            dic['MER'].append(0)
+            dic['CH26 (MAIN) - OFFSET(kHz)'].append(0)
         try:
-            dic['CBER'].append(point.find('MEASURES').find('CBER').attrib['value'])
+            dic['CH26 (MAIN) - MER(dB)'].append(point.find('MEASURES').find('MER').attrib['value'])
         except:
-            dic['CBER'].append(0)
+            dic['CH26 (MAIN) - MER(dB)'].append(0)
         try:
-            dic['VBER'].append(point.find('MEASURES').find('VBER').attrib['value'])
+            dic['CH26 (MAIN) - CBER'].append(point.find('MEASURES').find('CBER').attrib['value'])
         except:
-            dic['VBER'].append(0)
+            dic['CH26 (MAIN) - CBER'].append(0)
+        try:
+            dic['CH26 (MAIN) - VBER'].append(point.find('MEASURES').find('VBER').attrib['value'])
+        except:
+            dic['CH26 (MAIN) - VBER'].append(0)
+        try:
+            dic['CH26 (MAIN) - LM(dB)'].append(point.find('MEASURES').find('LM').attrib['value'])
+        except:
+            dic['CH26 (MAIN) - LM(dB)'].append(0)
             
     return dic
 
-
-def add_params(parameters, df):
-    
-    """add the following parameter values(CHANNEL, FREQUENCY,
-    FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING) which is
-    stored in the parameters tuple, to the dataframe values and return a completed dataframe"""
-    
-    param_list = ['CHANNEL','FREQUENCY',
-                  'FFT_MODE','GUARD_INTERVAL',
-                  'CODERATE','CONSTELLATION',
-                  'TIME_INTERLEAVING']
-    for param,val in zip(param_list,parameters):
-        df[param] = val
-        
-    return df
 
 
 def create_folder(path):
@@ -169,15 +147,17 @@ def create_folder(path):
     if not os.path.exists(path + '/CSV'):
         os.mkdir(path + '/CSV') 
 
+
 def get_path():
     try:                 
         path = sys.argv[1]
     except:
         print("""\nPlease don\'t forget to type the target folder path
-            type the command 'python convert <folder path>'""")
-        exit()
+            type the command 'convert <folder path>'""")
+        sys.exit()
     
     return path
+
 
 def main():
 
@@ -202,21 +182,19 @@ def main():
         
         root = tree.getroot()
         channel = root.find('INFORMATION').find('CHANNEL')
-        measurements = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS')
-        params_ = params(channel, measurements)
+        isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
         cpoints = root.findall('CPOINT')
         cpoints_dictionary= dictionary(cpoints)
         df = dataframe(cpoints_dictionary)
         print('\tsuccess...')
-        df_measures_with_params = add_params(params_, df)
-        df_list.append(df_measures_with_params)
+        df_list.append(df)
         converted_successfully += 1
     
     output = concat(df_list)
-    good, no_signal = separate_good(output)
+    TS_locked, no_signal = separate_good(output)
     create_folder(path)
 
-    good.to_csv(path + '/CSV/good.csv', index = False)
+    TS_locked.to_csv(path + '/CSV/TS_locked.csv', index = False)
     no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
 
     print(f'\n{converted_successfully} file/s converted and merged successfully')
