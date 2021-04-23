@@ -5,8 +5,8 @@ Created on Wed Feb 10 08:18:48 2021
 @description: Created for XML files from PROMAX RANGER NEO Signal Coverage test to be converted to CSV file
                 and separate out the no signal from the good and ready for uploading into QGIS.
 @author: warny sembrano
-
 """
+
 
 import os
 import pandas as pd
@@ -31,11 +31,10 @@ my_parser.add_argument('-c', '--categorize', action='store_false', help='files a
 args = my_parser.parse_args()
 
 
-def get_folder(path_folder):
-   
-    """fetch all files within a folder give a path to the 
-    folder/directory and returned as list"""
-    
+def get_folder(path_folder):   
+    """Fetch all files within a folder give a path to the 
+    folder/directory and returned as list.
+    """
     try:
         folder = [file for file in os.listdir(path_folder) if file.endswith('.XML')]
     except:
@@ -50,45 +49,37 @@ def get_folder(path_folder):
 
  
 def separate_good(df):
-    
-    """seprate out drive test points that have Transport Stream locked signals 
-    and those do not receive signal and returned as tuple of DataFrame"""
-    
+    """Seprate out drive test points that have Transport Stream locked signals 
+    and those do not receive signal and returned as tuple of DataFrame.
+    """
     return df.loc[df['STATUS']=='MPEG2 TS locked'],df.loc[df['STATUS']=='No signal received']
 
 
 def get_file(file, path):
-    
     """Returns a file including its file path.
-    Accepts a filename and its path as the parameter"""
-    
+    Accepts a filename and its path as the parameter.
+    """
     return path + '/' + file
 
 
 def dataframe(dic):
-    
-    """returns a pandas dataframe that accepts a dictionary as parameter"""
-    
+    """Returns a pandas dataframe that accepts a dictionary as parameter."""
     df = pd.DataFrame(dic)
     return df
 
 
 def concat(df_list):
-    
-    """Returns a concatenated dataframe and accepts a list of dataframe as parameter"""
-    
+    """Returns a concatenated dataframe and accepts a list of dataframe as parameter."""
     df = pd.concat(df_list)
     return df
 
 
 
-
 def dictionary(cpoint_list):
-    
     """Accepts a CPOINT list as parameter and 
     sift through it to extract the following (ID,DATE,ALTITUDE,LATITUDE,
-    LONGITUDE,STATUS,POWER,CN,MER,CBER,VBER) save it to a dictionary called dic and returns the dictionary"""
-    
+    LONGITUDE,STATUS,POWER,CN,MER,CBER,VBER) save it to a dictionary called dic and returns the dictionary.
+    """
     dic = {'TEST POINT':[],'DATE':[],
             'TIME':[],'ALTITUDE':[],'LATITUDE':[],
             'LONGITUDE':[],'STATUS':[],
@@ -153,34 +144,23 @@ def dictionary(cpoint_list):
             dic['CH26 (MAIN) - LM(dB)'].append(point.find('MEASURES').find('LM').attrib['value'])
         except:
             dic['CH26 (MAIN) - LM(dB)'].append(0)
-            
+
     return dic
 
 
-
 def create_folder(path):
-    
-    """create CSV folder where csv files will be stored/saved"""
-    
+    """Create CSV folder where csv files will be stored/saved."""
     if not os.path.exists(path + '/CSV'):
         os.mkdir(path + '/CSV') 
 
 
 def get_path():
-
+    """Returns the path to given by the user."""
     if not os.path.isdir(args.path):
         print('\nThe path specified does not exist. type the command \'convert_v2 <folder path>\'')
         sys.exit()
 
     return args.path
-    # try:                 
-    #     path = sys.argv[1]
-    # except:
-    #     print("""\nPlease don\'t forget to type the target folder path
-    #         type the command 'convert <folder path>'""")
-    #     sys.exit()
-    
-    # return path
 
 
 def main():
@@ -232,8 +212,8 @@ def main():
         #print(f'{failed} file/s failed')
         print('Please check CSV folder.')
         
-    
     print(args)
+
 
 if __name__ == '__main__':
     main()
