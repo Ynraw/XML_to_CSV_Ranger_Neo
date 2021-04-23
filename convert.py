@@ -32,7 +32,46 @@ def get_folder(path_folder):
         
     return folder
 
- 
+    
+# def params(channel_, isdbt):
+    
+#     """extract the following parameters (CHANNEL, FREQUENCY,
+#     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING)
+#     of the given drive test file from PROMAX NEO ranger
+#     and return all the parameters as tuple"""
+
+#     try:
+#         channel = channel_.attrib['name']
+#     except:
+#         channel = 0
+#     try:
+#         frequency = channel_.attrib['frequency']
+#     except:
+#         frequency = 0
+#     try:
+#         fft_mode = isdbt.find('PARAMETERS').find('FFT_MODE').attrib['value']
+#     except:
+#         fft_mode = 0
+#     try:
+#         guard_interval = isdbt.find('PARAMETERS').find('GUARD_INTERVAL').attrib['value']
+#     except:
+#         guard_interval = 0
+#     try:
+#         coderate = isdbt.findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
+#     except:
+#         coderate = 0
+#     try:
+#         constellation= isdbt.findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
+#     except:
+#         constellation = 0
+#     try:
+#         time_interleaving = isdbt.findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
+#     except:
+#         time_interleaving = 0
+    
+#     return channel, frequency, fft_mode, guard_interval, coderate, constellation, time_interleaving
+
+
 def separate_good(df):
     
     """seprate out drive test points that have Transport Stream locked signals 
@@ -139,6 +178,21 @@ def dictionary(cpoint_list):
     return dic
 
 
+# def add_params(parameters, df):
+    
+#     """add the following parameter values(CHANNEL, FREQUENCY,
+#     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING) which is
+#     stored in the parameters tuple, to the dataframe values and return a completed dataframe"""
+    
+#     param_list = ['CHANNEL','FREQUENCY',
+#                   'FFT_MODE','GUARD_INTERVAL',
+#                   'CODERATE','CONSTELLATION',
+#                   'TIME_INTERLEAVING']
+#     for param,val in zip(param_list,parameters):
+#         df[param] = val
+        
+#     return df
+
 
 def create_folder(path):
     
@@ -183,10 +237,12 @@ def main():
         root = tree.getroot()
         channel = root.find('INFORMATION').find('CHANNEL')
         isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
+        #params_ = params(channel, isdbt)
         cpoints = root.findall('CPOINT')
         cpoints_dictionary= dictionary(cpoints)
         df = dataframe(cpoints_dictionary)
         print('\tsuccess...')
+        #df_measures_with_params = add_params(params_, df)
         df_list.append(df)
         converted_successfully += 1
     
