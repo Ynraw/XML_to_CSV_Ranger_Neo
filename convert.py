@@ -4,6 +4,7 @@ Created on Wed Feb 10 08:18:48 2021
 
 @description: Created for XML files from PROMAX RANGER NEO Signal Coverage test to be converted to CSV file
                 and separate out the no signal from the good and ready for uploading into QGIS.
+
 @author: warny sembrano
 """
 
@@ -21,7 +22,7 @@ my_parser = argparse.ArgumentParser(prog='convert',
                                     description='Command Line Application that converts XML files to CSV')
 
 # Add the arguments
-my_parser.add_argument('path', metavar='path', type=str, help='the path to XML folder')
+my_parser.add_argument('path', type=str, help='the path to XML folder')
 my_parser.add_argument('-e', '--extract_all', action='store_true', help='include the transmit information to be extracted from the XML file.\nTransmit info might be absent if TS unlocked')
 my_parser.add_argument('-r', '--retain_file', action='store_true', help='each XML files will be converted to each CSV file')
 my_parser.add_argument('-c', '--categorize', action='store_false', help='files are not categorize as locked/unlocked')
@@ -49,12 +50,11 @@ def get_folder(path_folder):
 
     
 def params(channel_, isdbt):
-    
     """extract the following parameters (CHANNEL, FREQUENCY,
     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING)
     of the given drive test file from PROMAX NEO ranger
-    and return all the parameters as tuple"""
-
+    and return all the parameters as tuple
+    """
     try:
         channel = channel_.attrib['name']
     except:
@@ -98,7 +98,7 @@ def get_file(file, path):
     """Returns a file including its file path.
     Accepts a filename and its path as the parameter.
     """
-    return path + '/' + file
+    return os.path.join(path, file)
 
 
 def dataframe(dic):
@@ -186,12 +186,12 @@ def dictionary(cpoint_list):
 
     return dic
 
-def add_params(parameters, df):
-    
+
+def add_params(parameters, df):    
     """add the following parameter values(CHANNEL, FREQUENCY,
     FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING) which is
-    stored in the parameters tuple, to the dataframe values and return a completed dataframe"""
-    
+    stored in the parameters tuple, to the dataframe values and return a completed dataframe
+    """
     param_list = ['CHANNEL','FREQUENCY',
                   'FFT_MODE','GUARD_INTERVAL',
                   'CODERATE','CONSTELLATION',
@@ -206,6 +206,7 @@ def create_folder(path):
     """Create CSV folder where csv files will be stored/saved."""
     if not os.path.exists(path + '/CSV'):
         os.mkdir(path + '/CSV') 
+    # Can be improved by not overwriting an existing directory by creating new directory
 
 
 def get_path():
@@ -215,6 +216,27 @@ def get_path():
         sys.exit()
 
     return args.path
+
+
+def retain_file(df, path, file):
+    df.to_csv(path + '/CSV/' + file[:-4] + '.csv', index = False)
+    
+
+def get_transmit_info(root, df, path, file):
+    channel = root.find('INFORMATION').find('CHANNEL')
+    isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
+    params_ = params(channel, isdbt)
+    df_measures_with_params = add_params(params_, df)
+    df_list.append(df_measures_with_params)
+    if args.retain_file:
+        retain_file(df_measures_with_params, path, file)
+    
+
+def categorize(df, path):
+    TS_locked, no_signal = separate_good(df)
+    TS_locked.to_csv(path + '/CSV/TS_locked.csv', index = False)
+    no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
+
 
 
 def main():
@@ -227,8 +249,7 @@ def main():
     path = get_path()
     files = get_folder(path)
     create_folder(path)
-        
-   
+           
     for file in files:
         print(f'converting {file} file now...')
         xml = get_file(file, path)
@@ -241,43 +262,33 @@ def main():
             continue
         
         root = tree.getroot()
-        #channel = root.find('INFORMATION').find('CHANNEL')
-        #isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
-        #params_ = params(channel, isdbt)
         cpoints = root.findall('CPOINT')
         cpoints_dictionary= dictionary(cpoints)
         df = dataframe(cpoints_dictionary)   
         print('\tsuccess...')
 
         if args.extract_all:
-            channel = root.find('INFORMATION').find('CHANNEL')
-            isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
-            params_ = params(channel, isdbt)
-            df_measures_with_params = add_params(params_, df)
-            df_list.append(df_measures_with_params)
-            if args.retain_file:
-                df_measures_with_params.to_csv(path + '/CSV/' + file[:-4] + '.csv', index = False)
-            # else:
-            #     df_list.append(df_measures_with_params)
-
+            get_transmit_info(root, df, path, file)
+            
         if args.retain_file:
-            df.to_csv(path + '/CSV/' + file[:-4] + '.csv', index = False)
+            retain_file(df, path, file)        
         else:
             df_list.append(df)
 
         converted_successfully += 1
        
-    
     if not args.retain_file:
         output = concat(df_list)
-        TS_locked, no_signal = separate_good(output)
-        TS_locked.to_csv(path + '/CSV/TS_locked.csv', index = False)
-        no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
-        print(f'\n{converted_successfully} file/s converted and merged successfully')
+        if args.categorize:
+            categorize(output, path)
+            print(f'\n{converted_successfully} file/s converted,merged and saved into TS_locked/No Signal category')
+        else:
+            output.to_csv(path + '/CSV/merged.csv', index = False)    
+            print(f'\n{converted_successfully} file/s converted and merged')
         print('Please check CSV folder.')
     else:
-        print(f'\n{converted_successfully} file/s converted successfully')
-        #print(f'{failed} file/s failed')
+        print(f'\n{converted_successfully} file/s converted')
+        print(f'{failed} file/s failed')
         print('Please check CSV folder.')
         
     print(args)
