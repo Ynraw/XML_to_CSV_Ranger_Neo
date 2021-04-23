@@ -13,7 +13,7 @@ import pandas as pd
 from lxml import etree as et
 import sys
 import argparse
-import time
+
 
 # Create parser
 my_parser = argparse.ArgumentParser(prog='convert',
@@ -22,8 +22,8 @@ my_parser = argparse.ArgumentParser(prog='convert',
 
 # Add the arguments
 my_parser.add_argument('path', metavar='path', type=str, help='the path to XML folder')
-my_parser.add_argument('-e', '--extract_all', action='store_true', help='include the transmit information to be extracted from the XML file')
-my_parser.add_argument('-r', '--retain_file', action='store_true', help='do not merge the files')
+my_parser.add_argument('-e', '--extract_all', action='store_true', help='include the transmit information to be extracted from the XML file.\nTransmit info might be absent if TS unlocked')
+my_parser.add_argument('-r', '--retain_file', action='store_true', help='each XML files will be converted to each CSV file')
 my_parser.add_argument('-c', '--categorize', action='store_false', help='files are not categorize as locked/unlocked')
 
 
@@ -192,9 +192,9 @@ def main():
     parser = et.XMLParser(ns_clean=True)
     path = get_path()
     files = get_folder(path)
-
+    create_folder(path)
         
-    start_loop = time.time()
+   
     for file in files:
         print(f'converting {file} file now...')
         xml = get_file(file, path)
@@ -213,22 +213,25 @@ def main():
         cpoints_dictionary= dictionary(cpoints)
         df = dataframe(cpoints_dictionary)   
         print('\tsuccess...')
-        df_list.append(df)
+        if args.retain_file:
+            df.to_csv(path + '/CSV/' + file[:-4] + '.csv', index = False)
+        else:
+            df_list.append(df)
         converted_successfully += 1
        
-    end_loop = time.time()
-
-    output = concat(df_list)
-    TS_locked, no_signal = separate_good(output)
-    create_folder(path)
-
-    TS_locked.to_csv(path + '/CSV/TS_locked.csv', index = False)
-    no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
-
-    print(f'\n{converted_successfully} file/s converted and merged successfully')
-    print(f'{failed} file/s failed')
-    print('Please check CSV folder.')
-    print('loop_time: {}'.format(end_loop-start_loop))
+    
+    if not args.retain_file:
+        output = concat(df_list)
+        TS_locked, no_signal = separate_good(output)
+        TS_locked.to_csv(path + '/CSV/TS_locked.csv', index = False)
+        no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
+        print(f'\n{converted_successfully} file/s converted and merged successfully')
+        print('Please check CSV folder.')
+    else:
+        print(f'\n{converted_successfully} file/s converted successfully')
+        #print(f'{failed} file/s failed')
+        print('Please check CSV folder.')
+        
     
     print(args)
 
