@@ -8,15 +8,31 @@ Created on Wed Feb 10 08:18:48 2021
 
 """
 
-
 import os
 import pandas as pd
 from lxml import etree as et
-import sys 
+import sys
+import argparse
+import time
+
+# Create parser
+my_parser = argparse.ArgumentParser(prog='convert',
+                                    usage='Convert and merge to CSV, all XML file output from PROMAX Ranger Explorer',
+                                    description='Command Line Application that converts XML files to CSV')
+
+# Add the arguments
+my_parser.add_argument('path', metavar='path', type=str, help='the path to XML folder')
+my_parser.add_argument('-e', '--extract_all', action='store_true', help='include the transmit information to be extracted from the XML file')
+my_parser.add_argument('-r', '--retain_file', action='store_true', help='do not merge the files')
+my_parser.add_argument('-c', '--categorize', action='store_false', help='files are not categorize as locked/unlocked')
+
+
+# Excecute the arg_prse method
+args = my_parser.parse_args()
 
 
 def get_folder(path_folder):
-    
+   
     """fetch all files within a folder give a path to the 
     folder/directory and returned as list"""
     
@@ -63,6 +79,8 @@ def concat(df_list):
     
     df = pd.concat(df_list)
     return df
+
+
 
 
 def dictionary(cpoint_list):
@@ -149,14 +167,20 @@ def create_folder(path):
 
 
 def get_path():
-    try:                 
-        path = sys.argv[1]
-    except:
-        print("""\nPlease don\'t forget to type the target folder path
-            type the command 'convert <folder path>'""")
+
+    if not os.path.isdir(args.path):
+        print('\nThe path specified does not exist. type the command \'convert_v2 <folder path>\'')
         sys.exit()
+
+    return args.path
+    # try:                 
+    #     path = sys.argv[1]
+    # except:
+    #     print("""\nPlease don\'t forget to type the target folder path
+    #         type the command 'convert <folder path>'""")
+    #     sys.exit()
     
-    return path
+    # return path
 
 
 def main():
@@ -169,6 +193,8 @@ def main():
     path = get_path()
     files = get_folder(path)
 
+        
+    start_loop = time.time()
     for file in files:
         print(f'converting {file} file now...')
         xml = get_file(file, path)
@@ -185,11 +211,13 @@ def main():
         isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
         cpoints = root.findall('CPOINT')
         cpoints_dictionary= dictionary(cpoints)
-        df = dataframe(cpoints_dictionary)
+        df = dataframe(cpoints_dictionary)   
         print('\tsuccess...')
         df_list.append(df)
         converted_successfully += 1
-    
+       
+    end_loop = time.time()
+
     output = concat(df_list)
     TS_locked, no_signal = separate_good(output)
     create_folder(path)
@@ -200,7 +228,9 @@ def main():
     print(f'\n{converted_successfully} file/s converted and merged successfully')
     print(f'{failed} file/s failed')
     print('Please check CSV folder.')
-
+    print('loop_time: {}'.format(end_loop-start_loop))
+    
+    print(args)
 
 if __name__ == '__main__':
     main()
