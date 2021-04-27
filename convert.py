@@ -9,11 +9,12 @@ Created on Wed Feb 10 08:18:48 2021
 """
 
 
-import os
 import pandas as pd
 from lxml import etree as et
 import sys
 import argparse
+from file_parser import FileParser
+from converter import *
 
 
 # Create parser
@@ -27,26 +28,9 @@ my_parser.add_argument('-e', '--extract_all', action='store_true', help='include
 my_parser.add_argument('-r', '--retain_file', action='store_true', help='each XML files will be converted to each CSV file')
 my_parser.add_argument('-c', '--categorize', action='store_false', help='files are not categorize as locked/unlocked')
 
-
 # Excecute the arg_prse method
 args = my_parser.parse_args()
 
-
-def get_folder(path_folder):   
-    """Fetch all files within a folder give a path to the 
-    folder/directory and returned as list.
-    """
-    try:
-        folder = [file for file in os.listdir(path_folder) if file.endswith('.XML')]
-    except:
-        print('\n-------Missing directory. Might be a case of incorrect path/folder name. Please check.-------')
-        sys.exit()
-
-    if len(folder) < 1:
-        print('\n-------No XML files, please check path directory or check folder-------')
-        sys.exit()
-        
-    return folder
 
     
 def params(channel_, isdbt):
@@ -85,33 +69,6 @@ def params(channel_, isdbt):
         time_interleaving = 0
     
     return channel, frequency, fft_mode, guard_interval, coderate, constellation, time_interleaving
-
-
-def separate_good(df):
-    """Seprate out drive test points that have Transport Stream locked signals 
-    and those do not receive signal and returned as tuple of DataFrame.
-    """
-    return df.loc[df['STATUS']=='MPEG2 TS locked'],df.loc[df['STATUS']=='No signal received']
-
-
-def get_file(file, path):
-    """Returns a file including its file path.
-    Accepts a filename and its path as the parameter.
-    """
-    return os.path.join(path, file)
-
-
-def dataframe(dic):
-    """Returns a pandas dataframe that accepts a dictionary as parameter."""
-    df = pd.DataFrame(dic)
-    return df
-
-
-def concat(df_list):
-    """Returns a concatenated dataframe and accepts a list of dataframe as parameter."""
-    df = pd.concat(df_list)
-    return df
-
 
 
 def dictionary(cpoint_list):
@@ -187,28 +144,6 @@ def dictionary(cpoint_list):
     return dic
 
 
-def add_params(parameters, df):    
-    """add the following parameter values(CHANNEL, FREQUENCY,
-    FFT_MODE, GUARD_INTERVAL, CODERATE, CONSTELLATION, TIME_INTERLEAVING) which is
-    stored in the parameters tuple, to the dataframe values and return a completed dataframe
-    """
-    param_list = ['CHANNEL','FREQUENCY',
-                  'FFT_MODE','GUARD_INTERVAL',
-                  'CODERATE','CONSTELLATION',
-                  'TIME_INTERLEAVING']
-    for param,val in zip(param_list,parameters):
-        df[param] = val
-        
-    return df
-
-
-def create_folder(path):
-    """Create CSV folder where csv files will be stored/saved."""
-    if not os.path.exists(path + '/CSV'):
-        os.mkdir(path + '/CSV') 
-    # Can be improved by not overwriting an existing directory by creating new directory
-
-
 def get_path():
     """Returns the path to given by the user."""
     if not os.path.isdir(args.path):
@@ -218,11 +153,8 @@ def get_path():
     return args.path
 
 
-def retain_file(df, path, file):
-    df.to_csv(path + '/CSV/' + file[:-4] + '.csv', index = False)
-    
-
-def get_transmit_info(root, df, path, file):
+def get_transmit_info(root, df, file):
+    path = args.path
     channel = root.find('INFORMATION').find('CHANNEL')
     isdbt = root.find('INFORMATION').find('CHANNEL').find('MEASUREMENTS').find('ISDB-T')
     params_ = params(channel, isdbt)
@@ -232,11 +164,25 @@ def get_transmit_info(root, df, path, file):
         retain_file(df_measures_with_params, path, file)
     
 
-def categorize(df, path):
-    TS_locked, no_signal = separate_good(df)
-    TS_locked.to_csv(path + '/CSV/TS_locked.csv', index = False)
-    no_signal.to_csv(path + '/CSV/no_signal.csv', index = False)
-
+def convert_xml(file, fp):
+    parser = et.XMLParser(ns_clean=True, recover=True)
+       
+    print(f'converting {file} file now...')
+    xml = fp.get_file(file)
+    try:
+        tree = et.parse(xml, parser)
+    except:
+        print('Error detected...')
+        print(f'\tPlease check <\COVERAGE> closing tag of {file}')
+        return 1
+    
+    root = tree.getroot()
+    cpoints = root.findall('CPOINT')
+    cpoints_dictionary= dictionary(cpoints)
+    df = dataframe(cpoints_dictionary)   
+    print('\tsuccess...')
+    
+    return df
 
 
 def main():
@@ -244,28 +190,17 @@ def main():
     converted_successfully = 0
     failed = 0
     df_list = []
-
-    parser = et.XMLParser(ns_clean=True)
+    #parser = et.XMLParser(ns_clean=True)
     path = get_path()
-    files = get_folder(path)
-    create_folder(path)
+    fp = FileParser(path)
+    files = fp.get_xml_files()
+    fp.create_folder()
            
     for file in files:
-        print(f'converting {file} file now...')
-        xml = get_file(file, path)
-        try:
-            tree = et.parse(xml, parser)
-        except:
+        df = convert_xml(file, fp)
+        if isinstance(df, int):
             failed += 1
-            print('Error detected...')
-            print(f'\tPlease check <\COVERAGE> closing tag of {file}')
             continue
-        
-        root = tree.getroot()
-        cpoints = root.findall('CPOINT')
-        cpoints_dictionary= dictionary(cpoints)
-        df = dataframe(cpoints_dictionary)   
-        print('\tsuccess...')
 
         if args.extract_all:
             get_transmit_info(root, df, path, file)
@@ -278,13 +213,15 @@ def main():
         converted_successfully += 1
        
     if not args.retain_file:
-        output = concat(df_list)
+        output = concat_(df_list)
         if args.categorize:
             categorize(output, path)
             print(f'\n{converted_successfully} file/s converted,merged and saved into TS_locked/No Signal category')
+            print(f'{failed} file/s failed')
         else:
             output.to_csv(path + '/CSV/merged.csv', index = False)    
             print(f'\n{converted_successfully} file/s converted and merged')
+            print(f'{failed} file/s failed')
         print('Please check CSV folder.')
     else:
         print(f'\n{converted_successfully} file/s converted')
