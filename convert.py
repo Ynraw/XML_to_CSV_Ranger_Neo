@@ -15,6 +15,7 @@ import sys
 import argparse
 from file_parser import FileParser
 from converter import *
+import os
 
 
 # Create parser
