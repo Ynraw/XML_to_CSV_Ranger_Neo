@@ -34,12 +34,23 @@ class FileParser:
             os.mkdir(self._path + '/CSV')
 
 
-    def get_file(self, file):
-        """Returns a file including its file path.
-        Accepts a filename and its path as the parameter.
-        """
-        return os.path.join(self._path, file)
+    def path_file_lists(self):
+        path_file_list = [os.path.join(self._path,file) for file in self.get_xml_files()]
+        return path_file_list
 
 
+    def generate_files(self):
+        file_list = self.path_file_lists()
+        for file in file_list:
+            yield file
+
+    
+    def get_file(self, generator):
+        try:
+            return next(generator)
+        except:
+            return None
+
+    
     def get_number_of_files(self):
         return self._number_of_files
