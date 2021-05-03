@@ -33,6 +33,8 @@ class FileParser:
         if not os.path.exists(self._path + '/CSV'):
             os.mkdir(self._path + '/CSV')
 
+    def get_dir_path(self):
+        return os.path.join(self._path, 'CSV\\')
 
     def path_file_lists(self):
         path_file_list = [os.path.join(self._path,file) for file in self.get_xml_files()]
