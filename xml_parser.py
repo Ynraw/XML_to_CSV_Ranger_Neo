@@ -9,10 +9,9 @@ class XMLParser:
             'CH26 (MAIN) - CN(dB)':[],'CH26 (MAIN) - OFFSET(kHz)':[],
             'CH26 (MAIN) - MER(dB)':[],'CH26 (MAIN) - CBER':[],'CH26 (MAIN) - VBER':[],
             'CH26 (MAIN) - LM(dB)':[]}
-
         self.dict_params = {'CHANNEL':None,'FREQUENCY':None,'FFT_MODE':None,'GUARD_INTERVAL':None,
                   'CODERATE':None,'CONSTELLATION':None,'TIME_INTERLEAVING':None}
-
+        
 
     def get_parser(self):
         return et.XMLParser(ns_clean=True, recover=True)
@@ -117,7 +116,8 @@ class XMLParser:
         isdbt = self.get_isdbt()
 
         try:
-            self.dict_params['CHANNEL'] = channel_.attrib['name']
+            name = channel_.attrib['name']
+            self.dict_params['CHANNEL'] = name
         except:
             self.dict_params['CHANNEL'] = 0
         try:
@@ -133,16 +133,32 @@ class XMLParser:
         except:
             self.dict_params['GUARD_INTERVAL'] = 0
         try:
-            self.dict_params['CODERATE'] = isdbt.findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
+            if isdbt.findall('LAYER')[1].getchildren():
+                self.dict_params['CODERATE'] = isdbt.findall('LAYER')[1].find('PARAMETERS').find('CODERATE').attrib['value']
+            else:
+                self.dict_params['CODERATE'] = isdbt.findall('LAYER')[0].find('PARAMETERS').find('CODERATE').attrib['value']
         except:
             self.dict_params['CODERATE'] = 0
         try:
-            self.dict_params['CONSTELLATION'] = isdbt.findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
+            if isdbt.findall('LAYER')[1].getchildren():
+                self.dict_params['CONSTELLATION'] = isdbt.findall('LAYER')[1].find('PARAMETERS').find('CONSTELLATION').attrib['value']
+            else:
+                self.dict_params['CONSTELLATION'] = isdbt.findall('LAYER')[0].find('PARAMETERS').find('CONSTELLATION').attrib['value']
         except:
             self.dict_params['CONSTELLATION'] = 0
         try:
-            self.dict_params['TIME_INTERLEAVING'] = isdbt.findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
+            if isdbt.findall('LAYER')[1].getchildren():
+                self.dict_params['TIME_INTERLEAVING'] = isdbt.findall('LAYER')[1].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
+            else:
+                self.dict_params['TIME_INTERLEAVING'] = isdbt.findall('LAYER')[0].find('PARAMETERS').find('TIME_INTERLEAVING').attrib['value']
         except:
             self.dict_params['TIME_INTERLEAVING'] = 0
         
         return self.dict_params
+
+    
+    def measurements_with_parameters(self):
+        p = self.parameters()
+        m = self.measurements()
+        p.update(m)
+        return p

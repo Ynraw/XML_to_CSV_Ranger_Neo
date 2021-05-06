@@ -2,17 +2,25 @@ import pandas as pd
 
 class CSVConverter:
 
+    df_list = []
+
     def __init__(self, dir_path, file_dict):
         self.path = dir_path
-        #self.params = params
         self.file_dict = file_dict
         
+
+    def __add__(self, other, promax=True):
+        if promax:
+            pd.concat([self.promax_convert(), other.promax_convert()])
+        else:
+            pd.concat([self.convert_with_params(), other.convert_with_params()])
+
 
     def get_df(self):
         return pd.DataFrame(self.file_dict)
 
     
-    def promax_convert(self, file):
+    def promax_convert(self):
         df = self.get_df()
         df = df[['TEST POINT',
                  'DATE',
@@ -27,22 +35,45 @@ class CSVConverter:
                  'CH26 (MAIN) - VBER',
                  'CH26 (MAIN) - LM(dB)']]
 
-        return df.to_csv(self.path + file[:-4] + '.csv', index = False)
+        return df
 
-    def convert(self):
-        df = self.get_df()
 
-        return df.to_csv(self.path + file[:-4] + '.csv', index = False)
+    def convert(self, file):
+        print(f'Converting {file} now....')
+        df = self.promax_convert()
+        df.to_csv(self.path + file[:-4] + '.csv', index = False)
+        print('\tSuccess...')
+        return
+
 
     def convert_with_params(self, file):
+        print(f'Converting {file} now....')
         df = self.get_df()
-        for key in self.params.keys():
-            df[key] = self.params[key]
+        df.to_csv(self.path + file[:-4] + '.csv', index = False)
+        print('\tSuccess...')
+        return
 
-        return df.to_csv(self.path + '/CSV/' + file[:-4] + '.csv', index = False)
-    
-    def concat(self):
-        pass
+
+    def add_df_to_list(self, promax=True):
+        if promax:
+            CSVConverter.df_list.append(self.promax_convert())
+        else:
+            CSVConverter.df_list.append(self.get_df())
+
+
+    def add_measurements_with_parameters_to_list(self):
+        measurements_with_parameters = self.get_df()
+        CSVConverter.df_list.append(measurements_with_parameters)
+
+
+    def merge(self):
+        print('Merging files...')
+        df = pd.concat(self.df_list)
+        if df.shape[1] > 12:
+            return df.to_csv(self.path + 'merge_with_parameters.csv', index = False)
+        else:
+            return df.to_csv(self.path + 'merge.csv', index = False)
+
 
     def categorize(self):
         df = self.get_df()

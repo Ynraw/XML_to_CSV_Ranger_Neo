@@ -7,7 +7,7 @@ class FileParser:
         self._path = path
         self._number_of_files = len(self.get_xml_files())
 
-    
+
     def get_xml_files(self):   
         """
         Returns a list of xml files.
@@ -30,11 +30,17 @@ class FileParser:
 
     def create_folder(self):
         """Create CSV folder where csv files will be stored/saved."""
+        print('Creating CSV Folder...')
         if not os.path.exists(self._path + '/CSV'):
             os.mkdir(self._path + '/CSV')
 
     def get_dir_path(self):
         return os.path.join(self._path, 'CSV\\')
+
+    def get_dir_paths(self):
+        path = self.get_dir_path()
+        return [path for _ in range(self.get_number_of_files())]
+
 
     def path_file_lists(self):
         path_file_list = [os.path.join(self._path,file) for file in self.get_xml_files()]
