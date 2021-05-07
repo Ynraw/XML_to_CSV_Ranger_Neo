@@ -9,11 +9,17 @@ class CSVConverter:
         self.file_dict = file_dict
         
 
-    def __add__(self, other, promax=True):
-        if promax:
-            pd.concat([self.promax_convert(), other.promax_convert()])
-        else:
-            pd.concat([self.convert_with_params(), other.convert_with_params()])
+    # def __add__(self, *args, promax=True):
+    #     if promax:
+    #         p = [self.promax_convert()]
+    #         for arg in args:
+    #             p.append(arg.promax_convert())
+    #         return pd.concat(p)
+    #     else:
+    #         p = [self.get_df()]
+    #         for arg in args:
+    #             p.append(arg.get_df())
+    #         return pd.concat(p)
 
 
     def get_df(self):

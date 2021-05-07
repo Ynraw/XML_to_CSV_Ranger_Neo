@@ -25,17 +25,21 @@ class XMLParser:
             return None  
         return tree 
 
+
     def get_root(self):
         tree = self.get_tree()
         return tree.getroot()
 
+
     def get_cpoint_list(self):
         return self.get_root().findall('CPOINT')
+
 
     def get_channel(self):
         root = self.get_root()
         channel = root.find('INFORMATION').find('CHANNEL')
         return channel
+
 
     def get_isdbt(self):
         root = self.get_root()

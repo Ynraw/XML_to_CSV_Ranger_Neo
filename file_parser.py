@@ -34,8 +34,10 @@ class FileParser:
         if not os.path.exists(self._path + '/CSV'):
             os.mkdir(self._path + '/CSV')
 
+
     def get_dir_path(self):
         return os.path.join(self._path, 'CSV\\')
+
 
     def get_dir_paths(self):
         path = self.get_dir_path()
