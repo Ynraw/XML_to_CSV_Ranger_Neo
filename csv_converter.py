@@ -7,6 +7,7 @@ class CSVConverter:
     def __init__(self, dir_path, file_dict):
         self.path = dir_path
         self.file_dict = file_dict
+
         
 
     # def __add__(self, *args, promax=True):
@@ -75,16 +76,20 @@ class CSVConverter:
     def merge(self):
         print('Merging files...')
         df = pd.concat(self.df_list)
+        return df
+
+    
+    def convert_merged(self, df):
         if df.shape[1] > 12:
             return df.to_csv(self.path + 'merge_with_parameters.csv', index = False)
         else:
             return df.to_csv(self.path + 'merge.csv', index = False)
 
 
-    def categorize(self):
-        df = self.get_df()
+    def categorize(self, df):
+        print('Categorizing into MPEG2 TS status...')
         MPEG_TS_locked = df.loc[df['STATUS']=='MPEG2 TS locked']
         No_Signal = df.loc[df['STATUS']=='No signal received']
         
-        MPEG_TS_locked.to_csv(self.path + '/CSV/MPEG_TS_locked.csv', index = False)
-        No_Signal.to_csv(self.path + '/CSV/No_Signal.csv', index = False)
+        MPEG_TS_locked.to_csv(self.path + 'MPEG_TS_locked.csv', index = False)
+        No_Signal.to_csv(self.path + 'No_Signal.csv', index = False)
