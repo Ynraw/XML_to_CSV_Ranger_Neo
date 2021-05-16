@@ -17,52 +17,66 @@ my_parser.add_argument('-ep', '--extract_params', action='store_true', help='inc
 my_parser.add_argument('-m', '--merge', action='store_true', help='each XML files will be merged first and converted to one CSV file')
 my_parser.add_argument('-cat', '--categorize', action='store_true', help='files will be categorize as locked/unlocked Transport Stream')
 
-# Excecute the arg_prse method
+# Excecute the parse_args method
 args = my_parser.parse_args()
 
 
 def main():
-
-    fp = FileParser(args.path)
-    fp.create_folder()
-    dir_path = fp.get_dir_path()
-    csv_paths = fp.get_dir_paths()
-    #path_name_list = fp.path_file_lists()
+    
+    fp = FileParser(args.path)  
     file_name_list = fp.get_xml_files()
-    file_gen = fp.generate_files()
-
 
     if args.extract_params:
         print('Preparing the files...')
-        fn = [fp.get_file(file_gen) for _ in file_name_list]
+        fn = fp.path_file_lists()
         xml_obj = [XMLParser(path) for path in fn]                
         m = [xml.measurements_with_parameters() for xml in xml_obj]
-        csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m)]
         if not args.merge:
+            print('\nfiles prepared and ready to be converted...')
+            csv_folder = fp.create_folder('csv_files_with_parameters')
+            csv_paths = fp.get_dir_paths(csv_folder)
+            csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m)]
             [csv.convert_with_params(file) for csv,file in zip(csvs, file_name_list)]
         elif args.merge and args.categorize:
-            df_list = [csv.add_df_to_list(promax=False) for csv in csvs]
+            csv_folder = fp.create_folder('csv_merged_categorized')
+            csv_paths = fp.get_dir_paths(csv_folder)
+            print('\nfiles prepared and ready to be merge and categorize...')
+            csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m)]
+            [csv.add_df_to_list(promax=False) for csv in csvs]
             merged_df = csvs[0].merge()
             csvs[0].categorize(merged_df)
         elif args.merge:
-            df_list = [csv.add_df_to_list(promax=False) for csv in csvs]
+            csv_folder = fp.create_folder('csv_merged')
+            csv_paths = fp.get_dir_paths(csv_folder)
+            print('\nfiles prepared and ready to be merge...')
+            csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m)]
+            [csv.add_df_to_list(promax=False) for csv in csvs]
             merged_df = csvs[0].merge()
             csvs[0].convert_merged(merged_df)
  
 
     if not args.extract_params:
         print('Preparing the files....')
-        fn = [fp.get_file(file_gen) for _ in file_name_list]
+        fn = fp.path_file_lists()
         xml_obj = [XMLParser(path) for path in fn]                
-        m = [xml.measurements() for xml in xml_obj]              
-        csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m)]
+        m_dict = [xml.measurements() for xml in xml_obj]              
+        
         if args.merge:
-            df_list = [csv.add_df_to_list(promax=True) for csv in csvs]
+            csv_folder = fp.create_folder('csv_merged')
+            csv_paths = fp.get_dir_paths(csv_folder)
+            csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m_dict)]
+            print('\nfiles prepared and ready to be merge...')
+            [csv.add_df_to_list(promax=True) for csv in csvs]
             merged_df = csvs[0].merge()
             csvs[0].convert_merged(merged_df)
         else:
+            csv_folder = fp.create_folder('csv_files')
+            csv_paths = fp.get_dir_paths(csv_folder)
+            csvs = [CSVConverter(d, m) for d,m in zip(csv_paths, m_dict)]
+            print('\nfiles prepared and ready to be converted...')
             [csv.convert(file) for csv,file in zip(csvs, file_name_list)]
             
     
 if __name__ == '__main__':
     main()
+    print('Done')
