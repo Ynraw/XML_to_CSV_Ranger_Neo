@@ -13,15 +13,12 @@ class XMLParser:
                   'CODERATE':None,'CONSTELLATION':None,'TIME_INTERLEAVING':None}
         
 
-    def get_parser(self):
-        return et.XMLParser(ns_clean=True, recover=True)
-
     def get_tree(self):
         try:
-            tree = et.parse(self.xml, self.get_parser())
+            tree = et.parse(self.xml, et.XMLParser(ns_clean=True, recover=True))
         except:
             print('Error detected...')
-            print(f'\tPlease check <\COVERAGE> closing tag of {file}')
+            print('\tPlease check <\COVERAGE> closing tag of')
             return None  
         return tree 
 
