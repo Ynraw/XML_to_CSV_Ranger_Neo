@@ -8,4 +8,3 @@ files at once.
 I am using lxml to parse the data and pandas to convert it to csv.
 
 For those who are seeking to convert xml to kml or to exccel you can go to the promax website, because they offer these options.
-
